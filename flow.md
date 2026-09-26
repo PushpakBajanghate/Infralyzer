@@ -5,8 +5,8 @@ Project execution checklist and progress tracking for the **Infralyzer** Power B
 ---
 
 ## 📊 Overall Progress Summary
-- [ ] **Phase 1: Data Preparation** (Status: Not Started)
-- [ ] **Phase 2: Star Schema Modeling** (Status: Not Started)
+- [ ] **Phase 1: Data Preparation** (Status: In Progress)
+- [x] **Phase 2: Star Schema Modeling** (Status: Completed)
 - [ ] **Phase 3: Basic & Advanced DAX** (Status: Not Started)
 - [ ] **Phase 4: Report Layout & Data Visualization** (Status: Not Started)
 - [ ] **Phase 5: Interview Preparation & Portfolio Packaging** (Status: Not Started)
@@ -14,7 +14,7 @@ Project execution checklist and progress tracking for the **Infralyzer** Power B
 ---
 
 ## Phase 1: Data Preparation
-- [ ] Connect to raw source data / extract files
+- [x] Connect to raw source data / extract files (`edge_ai_cost_monitoring_dataset.csv`)
 - [ ] Data profiling & quality assessment (missing values, duplicates, outliers)
 - [ ] Column data type verification & formatting
 - [ ] Column renaming and standardization (business-friendly terminology)
@@ -24,12 +24,12 @@ Project execution checklist and progress tracking for the **Infralyzer** Power B
 ---
 
 ## Phase 2: Star Schema Modeling
-- [ ] Identify business processes, grain, and key metrics
-- [ ] Separate dimension tables and fact tables
-- [ ] Define primary keys (PK) and foreign keys (FK) / surrogate keys
-- [ ] Establish 1-to-many (`1:*`) relationships with single directional filters
-- [ ] Avoid bidirectional relationships and resolve ambiguity (inactive relationships or role-playing dimensions)
-- [ ] Hide foreign key columns and technical keys from the Report view
+- [x] Identify business processes, grain, and key metrics
+- [x] Separate dimension tables and fact tables (`Fact_Project_Execution`, `Dim_Projects`, `Dim_Sites`)
+- [x] Define primary keys (PK) and foreign keys (FK) / surrogate keys
+- [x] Establish 1-to-many (`1:*`) relationships with single directional filters
+- [x] Avoid bidirectional relationships and resolve ambiguity (inactive relationships or role-playing dimensions)
+- [x] Hide foreign key columns and technical keys from the Report view
 
 ---
 
