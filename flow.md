@@ -5,21 +5,21 @@ Project execution checklist and progress tracking for the **Infralyzer** Power B
 ---
 
 ## 📊 Overall Progress Summary
-- [ ] **Phase 1: Data Preparation** (Status: In Progress)
+- [x] **Phase 1: Data Preparation** (Status: Completed)
 - [x] **Phase 2: Star Schema Modeling** (Status: Completed)
 - [x] **Phase 3: Basic & Advanced DAX** (Status: Completed)
 - [x] **Phase 4: Report Layout & Data Visualization** (Status: Completed)
-- [ ] **Phase 5: Interview Preparation & Portfolio Packaging** (Status: Not Started)
+- [ ] **Phase 5: Interview Preparation & Portfolio Packaging** (Status: In Progress)
 
 ---
 
 ## Phase 1: Data Preparation
 - [x] Connect to raw source data / extract files (`edge_ai_cost_monitoring_dataset.csv`)
-- [ ] Data profiling & quality assessment (missing values, duplicates, outliers)
-- [ ] Column data type verification & formatting
-- [ ] Column renaming and standardization (business-friendly terminology)
-- [ ] Power Query ETL transformations & cleansing steps documented
-- [ ] Applied steps optimization & query load staging / disabling staging loads
+- [x] Data profiling & quality assessment (missing values, duplicates, outliers)
+- [x] Column data type verification & formatting
+- [x] Column renaming and standardization (business-friendly terminology)
+- [x] Power Query ETL transformations & cleansing steps documented
+- [x] Applied steps optimization & query load staging / disabling staging loads
 
 ---
 
