@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Infralyzer: Real-Time Construction Cost & Feasibility Dashboard</title>
+  <!-- Chart.js for Power BI-style native visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-canvas: #F4F6F8;
+      --card-bg: #FFFFFF;
+      --text-main: #1A202C;
+      --text-muted: #718096;
+      --border-color: #E2E8F0;
+      --steel-blue: #1E3A8A;
+      --steel-blue-light: #3B82F6;
+      --safety-orange: #DD6B20;
+      --accent-green: #28A745;
+      --accent-yellow: #FFC000;
+      --accent-red: #FF4D4D;
+      --pbi-header: #202428;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Power BI Style Top Header Bar */
+    header {
+      background: var(--pbi-header);
+      color: #FFFFFF;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-badge {
+      background: var(--safety-orange);
+      color: #FFF;
+      font-weight: 800;
+      font-size: 13px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .live-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .pulse-dot {
+      width: 10px;
+      height: 10px;
+      background-color: var(--accent-green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent-green);
+      animation: pulse 1.5s infinite;
+    }
+
+    .pulse-dot.paused {
+      background-color: #A0AEC0;
+      box-shadow: none;
+      animation: none;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(40, 167, 69, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+    }
+
+    .btn-toggle {
+      background: var(--steel-blue);
+      border: 1px solid #3B82F6;
+      color: white;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-toggle:hover {
+      background: #2563EB;
+    }
+
+    /* Slicer / Filter Bar */
+    .filter-bar {
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .filter-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .filter-select {
+      background: #F8FAFC;
+      border: 1px solid var(--border-color);
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: var(--text-main);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .filter-select:focus {
+      border-color: var(--steel-blue-light);
+    }
+
+    .btn-reset {
+      background: transparent;
+      border: 1px dashed var(--text-muted);
+      color: var(--text-muted);
+      padding: 5px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .btn-reset:hover {
+      background: #EDF2F7;
+      color: var(--text-main);
+    }
+
+    /* Main Container */
+    .main-canvas {
+      padding: 20px 24px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 1440px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Top Section: 4 KPI Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--steel-blue);
+    }
+
+    .kpi-card.orange::before { background: var(--safety-orange); }
+    .kpi-card.green::before { background: var(--accent-green); }
+    .kpi-card.red::before { background: var(--accent-red); }
+
+    .kpi-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text-main);
+      line-height: 1.1;
+    }
+
+    .kpi-subtitle {
+      font-size: 12px;
+      margin-top: 6px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Middle Section: Clustered Bar + Matrix */
+    .middle-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 1024px) {
+      .middle-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 18px 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      border-bottom: 1px solid #EDF2F7;
+      padding-bottom: 10px;
+    }
+
+    .panel-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .panel-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .chart-container {
+      position: relative;
+      flex: 1;
+      min-height: 280px;
+    }
+
+    /* Matrix Table */
+    .table-container {
+      overflow-x: auto;
+      max-height: 280px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    th {
+      background: #F8FAFC;
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 10px 12px;
+      border-bottom: 2px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+
+    tr:hover {
+      background: #F8FAFC;
+    }
+
+    .badge-pill {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      color: white;
+    }
+
+    /* Bottom Section: Trend Line Chart */
+    .bottom-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 18px 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    /* Footer */
+    footer {
+      background: #FFFFFF;
+      border-top: 1px solid var(--border-color);
+      padding: 12px 24px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header>
+    <div class="brand-group">
+      <span class="brand-badge">PBI ENGINE</span>
+      <h1 class="brand-title">Infralyzer: Real-Time Construction Cost & Feasibility Dashboard</h1>
+    </div>
+    <div class="header-controls">
+      <div class="live-indicator">
+        <div id="livePulse" class="pulse-dot"></div>
+        <span id="liveStatusText">LIVE TELEMETRY (2s)</span>
+      </div>
+      <button id="toggleLiveBtn" class="btn-toggle">Pause Live Stream</button>
+    </div>
+  </header>
+
+  <!-- Power BI Style Slicer Filter Bar -->
+  <div class="filter-bar">
+    <div class="filter-item">
+      <span>Project Type:</span>
+      <select id="filterProjectType" class="filter-select">
+        <option value="ALL">All Project Types</option>
+        <option value="Construction">Construction</option>
+        <option value="Infrastructure">Infrastructure</option>
+        <option value="IT Integration">IT Integration</option>
+        <option value="Manufacturing">Manufacturing</option>
+      </select>
+    </div>
+
+    <div class="filter-item">
+      <span>Enterprise:</span>
+      <select id="filterEnterprise" class="filter-select">
+        <option value="ALL">All Enterprises</option>
+        <option value="Small">Small</option>
+        <option value="Medium">Medium</option>
+        <option value="Large">Large</option>
+      </select>
+    </div>
+
+    <div class="filter-item">
+      <span>Location (Site):</span>
+      <select id="filterLocation" class="filter-select">
+        <option value="ALL">All Locations</option>
+        <option value="Urban">Urban</option>
+        <option value="Semi-Urban">Semi-Urban</option>
+        <option value="Rural">Rural</option>
+      </select>
+    </div>
+
+    <div class="filter-item">
+      <span>Risk Status:</span>
+      <select id="filterRisk" class="filter-select">
+        <option value="ALL">All Statuses</option>
+        <option value="Low">Low</option>
+        <option value="Medium">Medium</option>
+        <option value="High">High</option>
+        <option value="Critical">Critical</option>
+      </select>
+    </div>
+
+    <button id="btnResetFilters" class="btn-reset">Reset Slicers</button>
+  </div>
+
+  <!-- Main Report Canvas -->
+  <main class="main-canvas">
+
+    <!-- Top Section: 4 KPI Cards -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-title">Total Planned Budget</span>
+        <div id="kpiPlanned" class="kpi-value">$0.00M</div>
+        <div class="kpi-subtitle" style="color: var(--steel-blue);">Baseline Allocated Capital</div>
+      </div>
+
+      <div class="kpi-card orange">
+        <span class="kpi-title">Total Actual Cost</span>
+        <div id="kpiActual" class="kpi-value">$0.00M</div>
+        <div class="kpi-subtitle" style="color: var(--safety-orange);">Realized Expenditure to Date</div>
+      </div>
+
+      <div id="cardVariance" class="kpi-card green">
+        <span class="kpi-title">Cost Variance & %</span>
+        <div id="kpiVariance" class="kpi-value">$0.00M</div>
+        <div id="kpiVariancePct" class="kpi-subtitle" style="color: var(--accent-green);">0.0% Variance</div>
+      </div>
+
+      <div class="kpi-card red">
+        <span class="kpi-title">High-Risk Projects</span>
+        <div id="kpiRiskCount" class="kpi-value">0</div>
+        <div class="kpi-subtitle" style="color: var(--accent-red);">High / Critical Risk Flags</div>
+      </div>
+    </section>
+
+    <!-- Middle Section: Clustered Bar + Risk Matrix Table -->
+    <section class="middle-grid">
+      
+      <!-- Clustered Bar Chart -->
+      <div class="card-panel">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Planned Budget vs Actual Cost by Project Type</h2>
+            <span class="panel-subtitle">Evaluated across Kimball Star Schema dimensions</span>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="barChartCanvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Risk & Feasibility Matrix Table -->
+      <div class="card-panel">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Execution Status & Risk Feasibility Matrix</h2>
+            <span class="panel-subtitle">Dynamic field-value conditional status indicators</span>
+          </div>
+        </div>
+        <div class="table-container">
+          <table id="matrixTable">
+            <thead>
+              <tr>
+                <th>Project Type</th>
+                <th>Risk Status</th>
+                <th>Budget ($M)</th>
+                <th>Actual ($M)</th>
+                <th>Variance %</th>
+                <th>Feasibility</th>
+              </tr>
+            </thead>
+            <tbody id="matrixTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Bottom Section: Longitudinal Line Trend Chart -->
+    <section class="bottom-panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Cumulative Cost Trajectory Over Project Timeline</h2>
+          <span class="panel-subtitle">Aggregated daily burn-rate progression (Planned vs Actual Spending)</span>
+        </div>
+      </div>
+      <div class="chart-container" style="height: 260px;">
+        <canvas id="lineChartCanvas"></canvas>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Status Footer -->
+  <footer>
+    <span><strong>Infralyzer Model:</strong> Star Schema (Fact_Project_Execution 1:* Dim_Projects, Dim_Sites) | Dataset: 4,000 Records</span>
+    <span id="lastUpdatedText">Telemetry sync: Initializing...</span>
+  </footer>
+
+  <!-- Include parsed dataset -->
+  <script src="dashboard_data.js"></script>
+
+  <!-- Interactive Dashboard Controller -->
+  <script>
+    // State management
+    let projectsData = typeof RAW_DATA !== 'undefined' ? [...RAW_DATA] : [];
+    let isLiveActive = true;
+    let liveInterval = null;
+    let barChartInstance = null;
+    let lineChartInstance = null;
+
+    // Slicer filters
+    const filterProjectType = document.getElementById('filterProjectType');
+    const filterEnterprise = document.getElementById('filterEnterprise');
+    const filterLocation = document.getElementById('filterLocation');
+    const filterRisk = document.getElementById('filterRisk');
+    const btnResetFilters = document.getElementById('btnResetFilters');
+
+    const toggleLiveBtn = document.getElementById('toggleLiveBtn');
+    const livePulse = document.getElementById('livePulse');
+    const liveStatusText = document.getElementById('liveStatusText');
+    const lastUpdatedText = document.getElementById('lastUpdatedText');
+
+    // Color Constants
+    const COLOR_STEEL_BLUE = '#1E3A8A';
+    const COLOR_SAFETY_ORANGE = '#DD6B20';
+    const COLOR_GREEN = '#28A745';
+    const COLOR_AMBER = '#FFC000';
+    const COLOR_RED = '#FF4D4D';
+
+    function getFilteredData() {
+      const type = filterProjectType.value;
+      const ent = filterEnterprise.value;
+      const loc = filterLocation.value;
+      const risk = filterRisk.value;
+
+      return projectsData.filter(d => {
+        if (type !== 'ALL' && d.type !== type) return false;
+        if (ent !== 'ALL' && d.enterprise !== ent) return false;
+        if (loc !== 'ALL' && d.location !== loc) return false;
+        if (risk !== 'ALL' && d.status !== risk) return false;
+        return true;
+      });
+    }
+
+    function formatMillions(val) {
+      return '$' + (val / 1000000).toFixed(2) + 'M';
+    }
+
+    function updateKPIs(data) {
+      const totalPlanned = data.reduce((acc, c) => acc + c.planned, 0);
+      const totalActual = data.reduce((acc, c) => acc + c.actual, 0);
+      const variance = totalActual - totalPlanned;
+      const variancePct = totalPlanned > 0 ? (variance / totalPlanned) * 100 : 0;
+      const highRiskCount = data.filter(d => d.status === 'High' || d.status === 'Critical').length;
+
+      document.getElementById('kpiPlanned').innerText = formatMillions(totalPlanned);
+      document.getElementById('kpiActual').innerText = formatMillions(totalActual);
+      document.getElementById('kpiVariance').innerText = (variance >= 0 ? '+' : '') + formatMillions(variance);
+      document.getElementById('kpiRiskCount').innerText = highRiskCount.toLocaleString();
+
+      const varCard = document.getElementById('cardVariance');
+      const varPctElem = document.getElementById('kpiVariancePct');
+
+      // Schedule Status Color DAX logic
+      if (variancePct > 10) {
+        varCard.className = 'kpi-card red';
+        varPctElem.style.color = COLOR_RED;
+        varPctElem.innerText = `+${variancePct.toFixed(1)}% (Critical Overrun)`;
+      } else if (variancePct > 0) {
+        varCard.className = 'kpi-card orange';
+        varPctElem.style.color = COLOR_AMBER;
+        varPctElem.innerText = `+${variancePct.toFixed(1)}% (Moderate Risk)`;
+      } else {
+        varCard.className = 'kpi-card green';
+        varPctElem.style.color = COLOR_GREEN;
+        varPctElem.innerText = `${variancePct.toFixed(1)}% (Feasible / Under Budget)`;
+      }
+    }
+
+    function updateBarChart(data) {
+      const categories = ['Construction', 'Infrastructure', 'IT Integration', 'Manufacturing'];
+      const plannedTotals = categories.map(cat => {
+        return data.filter(d => d.type === cat).reduce((acc, c) => acc + c.planned, 0) / 1000000;
+      });
+      const actualTotals = categories.map(cat => {
+        return data.filter(d => d.type === cat).reduce((acc, c) => acc + c.actual, 0) / 1000000;
+      });
+
+      if (!barChartInstance) {
+        const ctx = document.getElementById('barChartCanvas').getContext('2d');
+        barChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: categories,
+            datasets: [
+              {
+                label: 'Planned Budget ($M)',
+                data: plannedTotals,
+                backgroundColor: COLOR_STEEL_BLUE,
+                borderRadius: 4
+              },
+              {
+                label: 'Actual Cost ($M)',
+                data: actualTotals,
+                backgroundColor: COLOR_SAFETY_ORANGE,
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'top', labels: { boxWidth: 12, font: { weight: '600' } } }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: { display: true, text: 'Expenditure ($ Millions)', font: { weight: '600' } }
+              },
+              x: {
+                grid: { display: false }
+              }
+            }
+          }
+        });
+      } else {
+        barChartInstance.data.datasets[0].data = plannedTotals;
+        barChartInstance.data.datasets[1].data = actualTotals;
+        barChartInstance.update();
+      }
+    }
+
+    function updateMatrixTable(data) {
+      const tbody = document.getElementById('matrixTableBody');
+      tbody.innerHTML = '';
+
+      const groups = {};
+      data.forEach(d => {
+        const key = `${d.type}|${d.status}`;
+        if (!groups[key]) {
+          groups[key] = { type: d.type, status: d.status, planned: 0, actual: 0 };
+        }
+        groups[key].planned += d.planned;
+        groups[key].actual += d.actual;
+      });
+
+      const sortedKeys = Object.keys(groups).sort();
+      sortedKeys.forEach(k => {
+        const item = groups[k];
+        const diff = item.actual - item.planned;
+        const pct = item.planned > 0 ? (diff / item.planned) * 100 : 0;
+
+        let badgeBg = COLOR_GREEN;
+        let badgeLabel = 'Feasible';
+        if (pct > 10) {
+          badgeBg = COLOR_RED;
+          badgeLabel = 'Critical Risk';
+        } else if (pct > 0) {
+          badgeBg = COLOR_AMBER;
+          badgeLabel = 'Moderate';
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${item.type}</strong></td>
+          <td>${item.status}</td>
+          <td>$${(item.planned / 1000000).toFixed(2)}M</td>
+          <td>$${(item.actual / 1000000).toFixed(2)}M</td>
+          <td style="font-weight: 700; color: ${badgeBg};">${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%</td>
+          <td><span class="badge-pill" style="background: ${badgeBg};">${badgeLabel}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateLineChart(data) {
+      // Group by day bins (1 to 365, binned by 30 days)
+      const bins = [30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 365];
+      const plannedCurve = [];
+      const actualCurve = [];
+
+      bins.forEach(maxDay => {
+        const subset = data.filter(d => d.day <= maxDay);
+        const p = subset.reduce((acc, c) => acc + c.planned, 0) / 1000000;
+        const a = subset.reduce((acc, c) => acc + c.actual, 0) / 1000000;
+        plannedCurve.push(p);
+        actualCurve.push(a);
+      });
+
+      const labels = bins.map(b => `Day ${b}`);
+
+      if (!lineChartInstance) {
+        const ctx = document.getElementById('lineChartCanvas').getContext('2d');
+        lineChartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Cumulative Planned Budget ($M)',
+                data: plannedCurve,
+                borderColor: COLOR_STEEL_BLUE,
+                backgroundColor: 'rgba(30, 58, 138, 0.05)',
+                borderWidth: 2,
+                tension: 0.3,
+                fill: true
+              },
+              {
+                label: 'Cumulative Actual Spend ($M)',
+                data: actualCurve,
+                borderColor: COLOR_SAFETY_ORANGE,
+                backgroundColor: 'transparent',
+                borderWidth: 2.5,
+                tension: 0.3
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'top', labels: { boxWidth: 12, font: { weight: '600' } } }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: { display: true, text: 'Cumulative Budget ($ Millions)', font: { weight: '600' } }
+              },
+              x: {
+                title: { display: true, text: 'Project Timeline (Days Elapsed)', font: { weight: '600' } }
+              }
+            }
+          }
+        });
+      } else {
+        lineChartInstance.data.datasets[0].data = plannedCurve;
+        lineChartInstance.data.datasets[1].data = actualCurve;
+        lineChartInstance.update();
+      }
+    }
+
+    function renderDashboard() {
+      const data = getFilteredData();
+      updateKPIs(data);
+      updateBarChart(data);
+      updateMatrixTable(data);
+      updateLineChart(data);
+      lastUpdatedText.innerText = `Telemetry sync: ${new Date().toLocaleTimeString()} (Active Records: ${data.length.toLocaleString()})`;
+    }
+
+    // Real-Time Telemetry Simulation
+    function simulateIncomingTelemetry() {
+      if (!isLiveActive || projectsData.length === 0) return;
+
+      // Select 50 random projects to simulate real-time edge updates
+      for (let i = 0; i < 50; i++) {
+        const idx = Math.floor(Math.random() * projectsData.length);
+        const item = projectsData[idx];
+        const costDelta = (Math.random() - 0.48) * 120; // slight upward drift
+        item.actual = Math.max(100, item.actual + costDelta);
+        item.variance = item.actual - item.planned;
+        item.latency = Math.max(5, item.latency + (Math.random() - 0.5) * 3);
+      }
+
+      renderDashboard();
+    }
+
+    // Event Listeners
+    [filterProjectType, filterEnterprise, filterLocation, filterRisk].forEach(elem => {
+      elem.addEventListener('change', renderDashboard);
+    });
+
+    btnResetFilters.addEventListener('click', () => {
+      filterProjectType.value = 'ALL';
+      filterEnterprise.value = 'ALL';
+      filterLocation.value = 'ALL';
+      filterRisk.value = 'ALL';
+      renderDashboard();
+    });
+
+    toggleLiveBtn.addEventListener('click', () => {
+      isLiveActive = !isLiveActive;
+      if (isLiveActive) {
+        livePulse.classList.remove('paused');
+        liveStatusText.innerText = 'LIVE TELEMETRY (2s)';
+        toggleLiveBtn.innerText = 'Pause Live Stream';
+      } else {
+        livePulse.classList.add('paused');
+        liveStatusText.innerText = 'STREAM PAUSED';
+        toggleLiveBtn.innerText = 'Resume Live Stream';
+      }
+    });
+
+    // Initialize
+    renderDashboard();
+    liveInterval = setInterval(simulateIncomingTelemetry, 2000);
+  </script>
+</body>
+</html>
