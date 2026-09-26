@@ -7,7 +7,7 @@ Project execution checklist and progress tracking for the **Infralyzer** Power B
 ## 📊 Overall Progress Summary
 - [ ] **Phase 1: Data Preparation** (Status: In Progress)
 - [x] **Phase 2: Star Schema Modeling** (Status: Completed)
-- [ ] **Phase 3: Basic & Advanced DAX** (Status: Not Started)
+- [x] **Phase 3: Basic & Advanced DAX** (Status: Completed)
 - [ ] **Phase 4: Report Layout & Data Visualization** (Status: Not Started)
 - [ ] **Phase 5: Interview Preparation & Portfolio Packaging** (Status: Not Started)
 
@@ -34,12 +34,12 @@ Project execution checklist and progress tracking for the **Infralyzer** Power B
 ---
 
 ## Phase 3: Basic & Advanced DAX
-- [ ] Create dedicated `_Measures` table for organized measure storage
-- [ ] Define core base measures (SUM, COUNT, DISTINCTCOUNT)
-- [ ] Implement business KPI calculations & ratios (e.g., margins, utilization, efficiency)
+- [x] Create dedicated `_Measures` table for organized measure storage
+- [x] Define core base measures (`Total Planned Cost`, `Total Actual Cost`)
+- [x] Implement business KPI calculations & ratios (`Cost Variance`, `Cost Variance %`)
 - [ ] Build Time Intelligence measures (YTD, MTD, YoY growth, rolling averages)
 - [ ] Validate measure performance using DAX Studio / Performance Analyzer
-- [ ] Add formatting strings and descriptions/comments to measures
+- [x] Add formatting strings and descriptions/comments to measures
 
 ---
 
